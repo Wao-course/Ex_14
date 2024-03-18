@@ -1,93 +1,111 @@
-# Ex_14
+# Exercise
+We're going to continue development on the Nozama shopping API. (Part of a solution to last week - not updated to .NET 8 https://gitlab.au.dk/swwao/nozama/-/tree/lesson-12?ref_type=heads)
 
+But before we get back to Nozama, we'll explore Polly and health monitoring in an isolated project:
 
+### Setup Polly
+1. Create a new .NET project using the ASP.NET Core WebAPI template[^5]
+2. Add Polly to your project[^4]
+3. Add new controller to the project named `MockController.cs` and copy the following code (or grap it @ `../TransientFaultHandling/Controllers/MockController.cs`):
+    ```cs
+    using Microsoft.AspNetCore.Mvc;
 
-## Getting started
+    namespace TransientFaultHandling.Controllers;
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+    [ApiController]
+    [Route("[controller]")]
+    public class MockController: ControllerBase {
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+      public enum EndpointState {
+        Fail,
+        Ok,
+        Slow,
+      }
+      public MockController() {
 
-## Add your files
+      }
+      [Route("success")]
+      [HttpGet]
+      public Task<StatusCodeResult> OnGetSuccess() {
+        return Task.FromResult(new StatusCodeResult(StatusCodes.Status200OK));
+      }
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+      [HttpGet]
+      public Task<StatusCodeResult> OnGet() {
+        var rand = (EndpointState)new Random().Next(0,3);
+        var result = StatusCodes.Status418ImATeapot;
+        switch (rand) {
+          case EndpointState.Fail:
+            result = StatusCodes.Status500InternalServerError;
+            break;
+          case EndpointState.Ok:
+            result = StatusCodes.Status200OK;
+            break;
+          case EndpointState.Slow:
+            result = StatusCodes.Status408RequestTimeout;
+          break;
+        }
+        return Task.FromResult(new StatusCodeResult(result));
+      }
+    }
+    ```
+4. Setup a Retry with exponential backoff with jitter[^1] targeting the `GET /` route in `MockController.cs`. Make sure to use `IHttpClientFactory`[^9] to create a named client for the endpoint
+5. Create a controller named `UserController`, inject `IHttpClientFactory` and implement an endpoint calling `GET /` on the instance
+6. Test it out with Postman[^6]
 
-```
-cd existing_repo
-git remote add origin https://gitlab.au.dk/wao-exercises1/ex_14.git
-git branch -M main
-git push -uf origin main
-```
+## Exercise 09-2
+### Setup health monitoring
+Next up, we're going to setup endpoint monitoring for our controllers.
 
-## Integrate with your tools
+1. Copy the following code into a file called `UserHealthCheck.cs` (or grap it @ `../HealthMonitoring/UserHealthCheck.cs`):
 
-- [ ] [Set up project integrations](https://gitlab.au.dk/wao-exercises1/ex_14/-/settings/integrations)
+    ```cs
+    using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-## Collaborate with your team
+    namespace HealthMonitoring.HealthChecks;
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+    public class UserHealthCheck : IHealthCheck 
+    {
 
-## Test and Deploy
+      private volatile bool _isReady = false;
+      public bool IsReady { 
+        get => _isReady;
+        set => _isReady = value; 
+      }
 
-Use the built-in continuous integration in GitLab.
+      public Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default) 
+      {
+        return Task.FromResult(_isReady ? HealthCheckResult.Healthy() : HealthCheckResult.Unhealthy());
+      }
+    }
+    ```
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+    Register `UserHealthCheck` as a service in `Program.cs` (so we can inject it in our controllers later)
+2. In `UserController`, add an endpoint @ `GET /ready` that toggles the `IsReady` property in `UserHealthCheck`
+3. Configure the `UserHealthCheck` health check and route it to `/hc-users`. There is a great guide[^7] @ Microsoft Docs
+4. Test it out in a browser
+5. Optional: Come back after adding a circuit breaker and set up the UI by following the guide[^8] @ GitHub (remember to read the whole section carefully, there are some hidden "gems")
 
-***
+### Add a circuit breaker
+1. Add a circuit breaker that opens after three (3) failures, stays open for 10 seconds before switching to a half-open state[^2][^3] (see `../TransientFaultHandling/Program.cs` for inspiration)
 
-# Editing this README
+## Nozama
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+### Add robustness to Recommendation service
+Add Polly and setup an exponential backoff retry in `Nozama.Recommendations/ProductCatalogService.cs`.
 
-## Suggestions for a good README
+### Setup monitoring endpoints
+Add monitoring endpoints to `Nozama.ProductCatalog` and `Nozama.Recommendations`.
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+### Add caching capability to `/productcatalog`
+- We're going to add some simple caching to the `ProductCatalogService` (see p. 152 in Microservices in .NET, Second edition)
 
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+[^1]: https://github.com/App-vNext/Polly/wiki/Retry-with-jitter
+[^2]: https://docs.microsoft.com/en-us/azure/architecture/patterns/circuit-breaker
+[^3]: https://github.com/App-vNext/Polly#circuit-breaker
+[^4]: https://www.nuget.org/packages/Microsoft.Extensions.Http.Polly
+[^5]: https://docs.microsoft.com/en-us/dotnet/core/tools/dotnet-new
+[^6]: https://www.postman.com/
+[^7]: https://docs.microsoft.com/en-us/aspnet/core/host-and-deploy/health-checks
+[^8]: https://github.com/Xabaril/AspNetCore.Diagnostics.HealthChecks#HealthCheckUI
+[^9]: https://docs.microsoft.com/en-us/aspnet/core/fundamentals/http-requests
