@@ -1,0 +1,12 @@
+# Please refer https://aka.ms/HTTPSinContainer on how to setup an https developer certificate for your ASP.NET Core service.
+
+version: '3.4'
+
+services:
+  nozamarecommendations:
+    image: nozamarecommendations
+    build:
+      context: .
+      dockerfile: Nozama.Recommendations/Dockerfile
+    ports:
+      - 5120:5120

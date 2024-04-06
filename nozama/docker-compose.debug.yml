@@ -1,0 +1,57 @@
+# Please refer https://aka.ms/HTTPSinContainer on how to setup an https developer certificate for your ASP.NET Core service.
+
+version: '3.8'
+
+services:
+  recommendations:
+    image: recommendations
+    depends_on:
+      - db-recommendations
+    restart: always
+    build:
+      context: .
+      dockerfile: Nozama.Recommendations/Dockerfile
+    ports:
+      - 5100:5100
+    environment:
+      ASPNETCORE_ENVIRONMENT: 'Development'
+      CONNECTION_STRING: 'Server=db-recommendations,1433;Database=master;User=sa;Password=suchSecureVeryWordSoPassW0w!;TrustServerCertificate=True'
+      PRODUCT_CATALOG_SERVICE_URI: 'http://productcatalog:5200/recommendation'
+    volumes:
+      - ~/.vsdbg:/remote_debugger:rw
+  productcatalog:
+    image: productcatalog
+    depends_on:
+      - db-productcatalog
+    restart: always
+    build:
+      context: .
+      dockerfile: Nozama.ProductCatalog/Dockerfile
+    ports:
+      - 5200:5200
+    environment:
+      ASPNETCORE_ENVIRONMENT: 'Development'
+      CONNECTION_STRING: 'Server=db-productcatalog,1433;Database=master;User=sa;Password=suchSecureVeryWordSoPassW0w!;TrustServerCertificate=True'
+    volumes:
+      - ~/.vsdbg:/remote_debugger:rw
+  db-recommendations:
+    image: mcr.microsoft.com/mssql/server
+    user: root
+    volumes:
+      - recommendations:/var/opt/mssql/data
+    environment:
+      SA_PASSWORD: "suchSecureVeryWordSoPassW0w!"
+      ACCEPT_EULA: "Y"
+  db-productcatalog:
+    image: mcr.microsoft.com/mssql/server
+    user: root
+    volumes:
+      - productcatalog:/var/opt/mssql/data
+    environment:
+      SA_PASSWORD: "suchSecureVeryWordSoPassW0w!"
+      ACCEPT_EULA: "Y"
+volumes:
+  recommendations:
+    name: recommendations-db
+  productcatalog:
+    name: productcatalog-db

@@ -1,0 +1,172 @@
+{
+	"info": {
+		"_postman_id": "0d394bf4-99be-4841-b725-e5714abff4b9",
+		"name": "Lecture 11 Nozama",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "19556519"
+	},
+	"item": [
+		{
+			"name": "Recommendations",
+			"item": [
+				{
+					"name": "/",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://{{HOST}}:{{PORT_RECOMMENDATIONS}}",
+							"protocol": "http",
+							"host": [
+								"{{HOST}}"
+							],
+							"port": "{{PORT_RECOMMENDATIONS}}"
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Product Catalog",
+			"item": [
+				{
+					"name": "/catalog",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"name\": \"ThinkPad X2 Carbon\",\n\t\"description\": \"The world's best ThinkPad\",\n\t\"price\": 2499.00\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{HOST}}:{{PORT_PRODUCT_CATALOG}}/catalog",
+							"protocol": "http",
+							"host": [
+								"{{HOST}}"
+							],
+							"port": "{{PORT_PRODUCT_CATALOG}}",
+							"path": [
+								"catalog"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/catalog",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://{{HOST}}:{{PORT_PRODUCT_CATALOG}}/catalog",
+							"protocol": "http",
+							"host": [
+								"{{HOST}}"
+							],
+							"port": "{{PORT_PRODUCT_CATALOG}}",
+							"path": [
+								"catalog"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/recommendation",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://{{HOST}}:{{PORT_PRODUCT_CATALOG}}/recommendation",
+							"protocol": "http",
+							"host": [
+								"{{HOST}}"
+							],
+							"port": "{{PORT_PRODUCT_CATALOG}}",
+							"path": [
+								"recommendation"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/recommendation",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"productsIds\": [1]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://{{HOST}}:{{PORT_PRODUCT_CATALOG}}/recommendation",
+							"protocol": "http",
+							"host": [
+								"{{HOST}}"
+							],
+							"port": "{{PORT_PRODUCT_CATALOG}}",
+							"path": [
+								"recommendation"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "HOST",
+			"value": "localhost",
+			"type": "string"
+		},
+		{
+			"key": "PORT_RECOMMENDATIONS",
+			"value": "5100",
+			"type": "string"
+		},
+		{
+			"key": "PORT_PRODUCT_CATALOG",
+			"value": "5200",
+			"type": "string"
+		},
+		{
+			"key": "PORT_SHOPPING_CART",
+			"value": "5300",
+			"type": "string"
+		}
+	]
+}
