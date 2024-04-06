@@ -1,0 +1,6 @@
+@PollySetup_HostAddress = http://localhost:5219
+
+GET {{PollySetup_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
