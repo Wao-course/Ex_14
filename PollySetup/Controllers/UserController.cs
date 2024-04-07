@@ -1,73 +1,29 @@
+//EXERCISE 14.2: HEALTH MONITORING
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Http;
-using System;
-using System.Net;
+using PollySetup.HealthMonitoring;
 
-namespace TransientFaultHandling.Controllers;
+namespace PollySetup.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-public class UserController : ControllerBase
-{
+public class UserController : ControllerBase {
+  private readonly ILogger<UserController> _logger;
+  private readonly UserHealthCheck _check;
+  public UserController(ILogger<UserController> logger, UserHealthCheck check) {
+    _logger = logger;
+    _check = check;
+  }
 
-    public enum EndpointState
-    {
-        Fail,
-        Ok,
-        Slow,
-    }
-    private readonly IHttpClientFactory _httpClientFactory;
+  [HttpGet]
+  public Task<IsReadyResponse> GetAsync() {
+    Console.WriteLine("Health check invoked");
+    _check.IsReady = !_check.IsReady;
+    return Task.FromResult(new IsReadyResponse {
+      IsReady = _check.IsReady
+    });
+  }
 
-    public UserController(IHttpClientFactory httpClientFactory)
-    {
-        _httpClientFactory = httpClientFactory;
-
-    }
-
-    [Route("success")]
-    [HttpGet]
-    public Task<StatusCodeResult> OnGetSuccess()
-    {
-        return Task.FromResult(new StatusCodeResult(StatusCodes.Status200OK));
-    }
-
-
-    [HttpGet]
-    public async Task<IActionResult> OnGet()
-    {
-        try
-        {
-            var client = _httpClientFactory.CreateClient("PollyWaitAndRetry"); // Use the named HttpClient with Polly retry policy
-            var response = await client.GetAsync("/"); // Targeting the GET route
-
-            if (response.IsSuccessStatusCode)
-            {
-                return Ok(); // Return Ok if the request is successful
-            }
-            else
-            {
-                var rand = (EndpointState)new Random().Next(0, 3);
-                var result = StatusCodes.Status418ImATeapot;
-
-                switch (rand)
-                {
-                    case EndpointState.Fail:
-                        result = StatusCodes.Status500InternalServerError;
-                        break;
-                    case EndpointState.Slow:
-                        result = StatusCodes.Status408RequestTimeout;
-                        break;
-                    case EndpointState.Ok:
-                        result = StatusCodes.Status200OK;
-                        break;
-                }
-                return StatusCode(result); // Return appropriate status code based on the random state
-            }
-        }
-        catch (HttpRequestException)
-        {
-            return StatusCode((int)HttpStatusCode.ServiceUnavailable); // Handle if HttpClient request fails
-        }
-    }
-
+  public sealed class IsReadyResponse {
+    public bool IsReady { get; set; }
+  }
 }

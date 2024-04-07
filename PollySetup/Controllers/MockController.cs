@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Http;
 using System;
 using System.Net;
 
-namespace TransientFaultHandling.Controllers;
+namespace PollySetup.Controllers;
 
 [ApiController]
 [Route("[controller]")]
