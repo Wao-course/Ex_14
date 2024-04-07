@@ -33,6 +33,7 @@ builder.Services.AddHttpClient(
             }
         )
     );
+    
 builder.Services.AddHttpClient(
     "PollyCircuitBreaker",
     client =>
