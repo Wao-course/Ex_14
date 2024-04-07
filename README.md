@@ -5,6 +5,11 @@ But before we get back to Nozama, we'll explore Polly and health monitoring in a
 
 ### Setup Polly
 1. Create a new .NET project using the ASP.NET Core WebAPI template[^5]
+  > created the folder PollySetup and ran the following command:
+  > ```bash
+  > dotnet new webapi -n <name>
+  > ```
+
 2. Add Polly to your project[^4]
 3. Add new controller to the project named `MockController.cs` and copy the following code (or grap it @ `../TransientFaultHandling/Controllers/MockController.cs`):
     ```cs
@@ -50,7 +55,9 @@ But before we get back to Nozama, we'll explore Polly and health monitoring in a
     }
     ```
 4. Setup a Retry with exponential backoff with jitter[^1] targeting the `GET /` route in `MockController.cs`. Make sure to use `IHttpClientFactory`[^9] to create a named client for the endpoint
-5. Create a controller named `UserController`, inject `IHttpClientFactory` and implement an endpoint calling `GET /` on the instance
+5. Create a controller named `UserController`, inject `IHttpClientFactory` and implement an endpoint calling `GET /` on the instance 
+  > Uncomment the code inside [PollyUserController.cs](./TransientFaultHandling/Controllers/UserController.cs) then change the name of the file to `UserController.cs`
+  
 6. Test it out with Postman[^6]
 
 ## Exercise 09-2
@@ -81,6 +88,14 @@ Next up, we're going to setup endpoint monitoring for our controllers.
     ```
 
     Register `UserHealthCheck` as a service in `Program.cs` (so we can inject it in our controllers later)
+      
+      ```csharp
+      // Add services to the container.
+      builder.Services.AddSingleton<UserHealthCheck>();
+      builder.Services.AddSingleton<UserController>();
+      builder.Services.AddHealthChecks().AddCheck<UserHealthCheck>("UserHealthCheck");
+      ```
+
 2. In `UserController`, add an endpoint @ `GET /ready` that toggles the `IsReady` property in `UserHealthCheck`
 3. Configure the `UserHealthCheck` health check and route it to `/hc-users`. There is a great guide[^7] @ Microsoft Docs
 4. Test it out in a browser
@@ -88,6 +103,24 @@ Next up, we're going to setup endpoint monitoring for our controllers.
 
 ### Add a circuit breaker
 1. Add a circuit breaker that opens after three (3) failures, stays open for 10 seconds before switching to a half-open state[^2][^3] (see `../TransientFaultHandling/Program.cs` for inspiration)
+```csharp	
+builder.Services.AddHttpClient(
+    "PollyCircuitBreaker",
+    client =>
+    {
+        client.BaseAddress = new Uri("http://localhost:5219/mock");
+    }).AddTransientHttpErrorPolicy(
+        builder => builder.CircuitBreakerAsync(
+            3,
+    TimeSpan.FromSeconds(10),
+    onBreak: (outcome, timespan, context) => Console.WriteLine($"Circuit is open due to {outcome.Exception}. Waiting for {timespan} before attempting to reset."),
+    onHalfOpen: () => Console.WriteLine("Circuit is half-open. Trying a test request."),
+    onReset: (context) => Console.WriteLine("Circuit is closed again.")
+)).AddPolicyHandler(fallbackPolicy);
+
+```
+
+
 
 ## Nozama
 
