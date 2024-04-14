@@ -15,9 +15,9 @@ public class ProductCatalogDbContext : DbContext
   public DbSet<StatsEntry> Stats => Set<StatsEntry>();
   public DbSet<Search> Searches => Set<Search>();
   public async Task<IEnumerable<StatsEntry>> GetStatsFromDatabaseAsync()
-        {
-            return await Stats.ToListAsync(); // Assuming StatsEntry is the entity representing stats in the database
-        }
-        
+  {
+    return await Stats.ToListAsync(); // Assuming StatsEntry is the entity representing stats in the database
+  }
+
 
 }

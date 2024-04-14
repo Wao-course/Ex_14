@@ -18,7 +18,7 @@
 
 
 <details>
-  <summary>Code</summary>
+  <summary><h1>Failure Propagation Example</h1></summary>
   
   ```csharp
   public void PerformTask()

@@ -133,6 +133,31 @@ Add monitoring endpoints to `Nozama.ProductCatalog` and `Nozama.Recommendations`
 ### Add caching capability to `/productcatalog`
 - We're going to add some simple caching to the `ProductCatalogService` (see p. 152 in Microservices in .NET, Second edition)
 
+
+### Visualize the setup
+```mermaid
+flowchart TD
+    subgraph "Nozama Microservices"
+        subgraph "Nozama.Recommendations"
+            RecommendationsService["Recommendations Service"] --> RecommendationsDB["Recommendations Database"]
+        end
+        subgraph "Nozama.ProductCatalog"
+            ProductCatalogService["Product Catalog Service"] --> ProductCatalogDB["Product Catalog Database"]
+        end
+    end
+    subgraph "Client Application"
+        Browser["Web Browser"]
+    end
+
+    Browser --> RecommendationsService
+    Browser --> ProductCatalogService
+
+    RecommendationsService -->|Database Query| RecommendationsDB
+    ProductCatalogService -->|Database Query| ProductCatalogDB
+
+
+```
+
 [^1]: https://github.com/App-vNext/Polly/wiki/Retry-with-jitter
 [^2]: https://docs.microsoft.com/en-us/azure/architecture/patterns/circuit-breaker
 [^3]: https://github.com/App-vNext/Polly#circuit-breaker
